@@ -711,7 +711,7 @@
                     <h1>💪 Training Sessions</h1>
                     <div class="header-subtitle" id="current-date"></div>
                 </div>
-                <div id="sync-status" style="font-size: 13px; color: var(--text-secondary); padding: 8px 12px; border-radius: 8px; background: var(--surface-secondary); white-space: nowrap;">
+                <div id="sync-status" onclick="manualSync()" style="font-size: 13px; color: var(--text-secondary); padding: 8px 12px; border-radius: 8px; background: var(--surface-secondary); white-space: nowrap; cursor: pointer; transition: all 0.2s ease;" onmouseover="this.style.background='var(--surface)'; this.style.boxShadow='0 2px 8px rgba(0,0,0,0.1)'" onmouseout="this.style.background='var(--surface-secondary)'; this.style.boxShadow='none'">
                     ✓ Synced
                 </div>
             </div>
@@ -1100,6 +1100,15 @@
             return cachedData;
         }
 
+        function manualSync() {
+            // Trigger manual sync
+            syncCloudInBackground().then(() => {
+                renderSessions();
+                renderCalendar();
+                updateSummary();
+            });
+        }
+
         async function syncCloudInBackground() {
             // Update status to "Syncing..."
             const statusEl = document.getElementById('sync-status');
@@ -1212,7 +1221,6 @@
                         <div class="status-badge ${statusClass}">${statusText}</div>
                     `;
 
-                    card.onclick = () => toggleSession(session.name);
                     grid.appendChild(card);
                 });
             };
