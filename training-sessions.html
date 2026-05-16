@@ -1,0 +1,1828 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Training Sessions</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #0071E3;
+            --strength: #FF3B30;
+            --cardio: #FF9500;
+            --recovery: #7C3AED;
+            --extra: #FF99BB;
+            --status-pending: #00B4D8;
+            --status-completed: #34C759;
+            --status-missed: #1D1D1D;
+            --status-not-done: #A0A0A5;
+            --background: #F5F5F7;
+            --surface: #FFFFFF;
+            --surface-secondary: #F9F9FB;
+            --text: #1D1D1D;
+            --text-secondary: #6E6E73;
+            --border: #E5E5EA;
+            --shadow-light: rgba(0, 0, 0, 0.05);
+            --shadow-medium: rgba(0, 0, 0, 0.08);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', sans-serif;
+            background: var(--background);
+            color: var(--text);
+            padding: 40px 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        header {
+            margin-bottom: 40px;
+        }
+
+        h1 {
+            font-size: 48px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            margin-bottom: 8px;
+        }
+
+        .header-subtitle {
+            font-size: 16px;
+            color: var(--text-secondary);
+            font-weight: 400;
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 40px;
+            background: var(--surface-secondary);
+            padding: 8px;
+            border-radius: 14px;
+            width: fit-content;
+        }
+
+        .tab-button {
+            padding: 10px 24px;
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            border-radius: 10px;
+        }
+
+        .tab-button:hover {
+            color: var(--text);
+            background: rgba(0, 0, 0, 0.03);
+        }
+
+        .tab-button.active {
+            color: var(--primary);
+            background: var(--surface);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Summary Cards */
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .summary-card {
+            background: var(--surface);
+            padding: 32px;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            border-left: 4px solid var(--primary);
+            box-shadow: 0 1px 3px var(--shadow-light);
+            transition: all 0.2s ease;
+        }
+
+        .summary-card:nth-child(1) {
+            border-left-color: var(--strength);
+        }
+
+        .summary-card:nth-child(2) {
+            border-left-color: var(--cardio);
+        }
+
+        .summary-card:nth-child(3) {
+            border-left-color: var(--recovery);
+        }
+
+        .summary-card:nth-child(4) {
+            border-left-color: var(--primary);
+        }
+
+        .summary-card:nth-child(5) {
+            border-left-color: var(--primary);
+        }
+
+        .summary-card:hover {
+            box-shadow: 0 4px 12px var(--shadow-medium);
+        }
+
+        .summary-card label {
+            display: block;
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .summary-card .number {
+            font-size: 40px;
+            font-weight: 700;
+            color: var(--primary);
+            letter-spacing: -0.5px;
+        }
+
+        .completion-rate {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-top: 8px;
+            font-weight: 500;
+        }
+
+        /* Section Headers with Week Navigation */
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 32px;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        section h2 {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--text);
+            letter-spacing: -0.3px;
+        }
+
+        .week-navigation {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: var(--surface-secondary);
+            padding: 8px 16px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+
+        .week-navigation button {
+            background: transparent;
+            border: none;
+            color: var(--primary);
+            font-size: 18px;
+            cursor: pointer;
+            padding: 8px 12px;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+            font-weight: 600;
+        }
+
+        .week-navigation button:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        .week-display {
+            font-size: 14px;
+            color: var(--text);
+            font-weight: 600;
+            min-width: 140px;
+            text-align: center;
+        }
+
+        .today-button {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .today-button:hover {
+            opacity: 0.8;
+        }
+
+        /* Target Sessions */
+        .sessions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .session-card {
+            background: var(--surface);
+            padding: 28px;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .session-card:hover {
+            box-shadow: 0 8px 24px var(--shadow-medium);
+            transform: translateY(-2px);
+        }
+
+        .session-card.completed {
+            opacity: 0.7;
+        }
+
+        .session-name {
+            font-weight: 700;
+            margin-bottom: 12px;
+            font-size: 16px;
+            letter-spacing: -0.2px;
+        }
+
+        .session-type-badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .session-type-badge.strength {
+            background: rgba(255, 59, 48, 0.15);
+            color: var(--strength);
+        }
+
+        .session-type-badge.cardio {
+            background: rgba(255, 149, 0, 0.15);
+            color: var(--cardio);
+        }
+
+        .session-type-badge.recovery {
+            background: rgba(175, 82, 222, 0.15);
+            color: var(--recovery);
+        }
+
+        .session-type-badge.extra {
+            background: rgba(255, 153, 187, 0.15);
+            color: #CC6699;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            margin-bottom: 12px;
+        }
+
+        .status-badge.pending,
+        .status-badge.to-do {
+            background: rgba(0, 180, 216, 0.15);
+            color: var(--status-pending);
+        }
+
+        .status-badge.completed {
+            background: rgba(52, 199, 89, 0.15);
+            color: var(--status-completed);
+        }
+
+        .status-badge.missed {
+            background: rgba(29, 29, 29, 0.1);
+            color: var(--status-missed);
+        }
+
+        .status-badge.not-done {
+            background: rgba(160, 160, 165, 0.15);
+            color: var(--status-not-done);
+        }
+
+        .session-card.missed {
+            opacity: 0.6;
+        }
+
+        /* Calendar View */
+        .calendar-container {
+            background: var(--surface);
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            overflow: hidden;
+            box-shadow: 0 1px 3px var(--shadow-light);
+        }
+
+        .calendar-header {
+            background: linear-gradient(135deg, rgba(0, 113, 227, 0.05), rgba(52, 199, 89, 0.05));
+            padding: 32px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .calendar-header h3 {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 1px;
+            padding: 2px;
+            background: var(--border);
+        }
+
+        .calendar-day-header {
+            background: var(--surface-secondary);
+            padding: 16px;
+            text-align: center;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .calendar-day {
+            background: var(--surface);
+            padding: 20px;
+            min-height: 120px;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .calendar-day:hover {
+            background: var(--surface-secondary);
+        }
+
+        .calendar-day.other-month {
+            background: var(--surface-secondary);
+            opacity: 0.5;
+        }
+
+        .calendar-day-number {
+            font-size: 14px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            color: var(--text);
+        }
+
+        .calendar-sessions {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .calendar-session {
+            font-size: 11px;
+            padding: 6px 8px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .calendar-session.strength {
+            background: rgba(255, 59, 48, 0.15);
+            color: var(--strength);
+        }
+
+        .calendar-session.cardio {
+            background: rgba(255, 149, 0, 0.15);
+            color: var(--cardio);
+        }
+
+        .calendar-session.recovery {
+            background: rgba(175, 82, 222, 0.15);
+            color: var(--recovery);
+        }
+
+        .calendar-session:hover {
+            opacity: 0.8;
+            transform: scale(0.98);
+        }
+
+        .calendar-session.missed {
+            opacity: 0.5;
+            text-decoration: line-through;
+        }
+
+        .calendar-session.not-done {
+            opacity: 0.4;
+            text-decoration: line-through;
+        }
+
+        /* Quick Log Form */
+        .quick-log {
+            background: var(--surface);
+            padding: 40px;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            box-shadow: 0 1px 3px var(--shadow-light);
+        }
+
+        .quick-log h2 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 32px;
+            letter-spacing: -0.3px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 28px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--text);
+            letter-spacing: -0.2px;
+        }
+
+        input, select {
+            padding: 14px 16px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            font-size: 14px;
+            font-family: inherit;
+            background: var(--surface-secondary);
+            color: var(--text);
+            transition: all 0.2s ease;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: var(--surface);
+            box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.1);
+        }
+
+        button {
+            background: var(--primary);
+            color: white;
+            padding: 14px 28px;
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s ease;
+            letter-spacing: -0.2px;
+        }
+
+        button:hover {
+            opacity: 0.9;
+            box-shadow: 0 8px 24px rgba(0, 113, 227, 0.3);
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        .info-text {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-top: 16px;
+            font-weight: 500;
+        }
+
+        .import-section {
+            margin-bottom: 28px;
+            padding: 20px;
+            background: var(--surface-secondary);
+            border-radius: 12px;
+            border: 1px dashed var(--border);
+        }
+
+        .import-section h3 {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .import-section p {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            animation: fadeIn 0.2s ease;
+        }
+
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-content {
+            background: var(--surface);
+            padding: 40px;
+            border-radius: 20px;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 0;
+                transform: translateY(0);
+            }
+        }
+
+        .modal-content h3 {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 24px;
+            letter-spacing: -0.3px;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            margin-top: 28px;
+        }
+
+        .modal-buttons button {
+            padding: 10px 20px;
+            font-size: 14px;
+        }
+
+        .modal-buttons .cancel-btn {
+            background: var(--surface-secondary);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+
+        .modal-buttons .cancel-btn:hover {
+            background: var(--border);
+        }
+
+        .modal-buttons .delete-btn {
+            background: #FF3B30;
+        }
+
+        .modal-buttons .delete-btn:hover {
+            opacity: 0.9;
+        }
+
+        .option-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .option-buttons button {
+            width: 100%;
+            justify-content: center;
+            padding: 12px 20px;
+            text-align: center;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 20px;
+            }
+
+            h1 {
+                font-size: 32px;
+            }
+
+            section h2 {
+                font-size: 20px;
+            }
+
+            .summary-grid {
+                grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+                gap: 12px;
+            }
+
+            .summary-card {
+                padding: 20px;
+            }
+
+            .section-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .week-navigation {
+                width: 100%;
+            }
+
+            .sessions-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .calendar-grid {
+                grid-template-columns: repeat(7, 1fr);
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .tabs {
+                flex-wrap: wrap;
+            }
+
+            .tab-button {
+                padding: 12px 16px;
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h1>💪 Training Sessions</h1>
+                    <div class="header-subtitle" id="current-date"></div>
+                </div>
+                <div id="sync-status" style="font-size: 13px; color: var(--text-secondary); padding: 8px 12px; border-radius: 8px; background: var(--surface-secondary); white-space: nowrap;">
+                    ✓ Synced
+                </div>
+            </div>
+        </header>
+
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab-button active" onclick="switchTab('this-week')">Dashboard</button>
+            <button class="tab-button" onclick="switchTab('session-log')">Calendar</button>
+            <button class="tab-button" onclick="switchTab('quick-log')">Quick Log</button>
+        </div>
+
+        <!-- This Week Tab -->
+        <div id="this-week" class="tab-content active">
+            <div class="week-navigation" style="margin-bottom: 40px;">
+                <button onclick="previousWeek()" title="Previous week">←</button>
+                <div class="week-display" id="week-display"></div>
+                <button onclick="nextWeek()" title="Next week">→</button>
+                <button class="today-button" onclick="resetToThisWeek()">Today</button>
+            </div>
+
+            <div class="summary-grid" id="summary-grid"></div>
+
+            <section>
+                <h2>Target Sessions</h2>
+                <div class="sessions-grid" id="sessions-grid"></div>
+            </section>
+
+            <section>
+                <h2>Cardio</h2>
+                <div class="sessions-grid" id="cardio-grid"></div>
+            </section>
+
+            <section>
+                <h2>Recovery</h2>
+                <div class="sessions-grid" id="recovery-grid"></div>
+            </section>
+        </div>
+
+        <!-- Session Log Tab -->
+        <div id="session-log" class="tab-content">
+            <div class="week-navigation" style="margin-bottom: 40px;">
+                <button onclick="previousMonth()" title="Previous month">←</button>
+                <div class="week-display" id="month-display" style="min-width: 160px;"></div>
+                <button onclick="nextMonth()" title="Next month">→</button>
+                <button class="today-button" onclick="resetToThisMonth()">Today</button>
+            </div>
+
+            <div class="calendar-container">
+                <div class="calendar-header">
+                    <h3 id="calendar-month"></h3>
+                </div>
+                <div class="calendar-grid" id="calendar-grid"></div>
+            </div>
+        </div>
+
+        <!-- Quick Log Tab -->
+        <div id="quick-log" class="tab-content">
+            <div class="quick-log">
+                <h2>✏️ Quick Log</h2>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="workout-select">Session</label>
+                        <select id="workout-select">
+                            <option value="">Select session...</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="date-completed">Date</label>
+                        <input type="date" id="date-completed">
+                    </div>
+                </div>
+                <button onclick="logWorkout()">Log Session</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Extra Workout Type Modal -->
+    <div id="workoutTypeModal" class="modal">
+        <div class="modal-content">
+            <h3>What type of workout did you do?</h3>
+            <div class="option-buttons" id="modal-options"></div>
+        </div>
+    </div>
+
+    <!-- Calendar Session Detail Modal -->
+    <div id="sessionDetailModal" class="modal">
+        <div class="modal-content">
+            <h3 id="modal-session-title"></h3>
+            <p id="modal-session-date" style="color: var(--text-secondary); margin-bottom: 24px; font-size: 14px;"></p>
+            <div class="modal-buttons">
+                <button class="cancel-btn" onclick="closeSessionModal()">Close</button>
+                <button class="delete-btn" onclick="deleteLogSession()">Delete</button>
+                <button onclick="openEditModal()">Edit Date</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Date Modal -->
+    <div id="editDateModal" class="modal">
+        <div class="modal-content">
+            <h3>Edit Session Date</h3>
+            <div class="form-group" style="margin-bottom: 24px;">
+                <label for="edit-date-input">Date</label>
+                <input type="date" id="edit-date-input">
+            </div>
+            <div class="modal-buttons">
+                <button class="cancel-btn" onclick="closeEditModal()">Cancel</button>
+                <button onclick="saveEditedDate()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Workout Modal (from Calendar) -->
+    <div id="addWorkoutModal" class="modal">
+        <div class="modal-content">
+            <h3>Add Workout</h3>
+            <div class="form-group" style="margin-bottom: 20px;">
+                <label for="add-workout-select">Session</label>
+                <select id="add-workout-select">
+                    <option value="">Select a session...</option>
+                </select>
+            </div>
+            <div class="form-group" style="margin-bottom: 24px;">
+                <label for="add-workout-date-input">Date</label>
+                <input type="date" id="add-workout-date-input">
+            </div>
+            <div class="modal-buttons">
+                <button class="cancel-btn" onclick="closeAddWorkoutModal()">Cancel</button>
+                <button onclick="submitAddWorkout()">Add</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ===== CLOUD SYNC CONFIGURATION =====
+        // Google Apps Script deployment URL
+        let GOOGLE_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw21qlyX_Gsh1veTY4YpifyECWidCFDWuW5eZu1fJmsTU34wlOKFk-FPeJWCiQuVcxn/exec';
+
+        // Data Model: Session Definition
+        // Properties:
+        //   name: string - Session name
+        //   type: 'Strength' | 'Cardio' | 'Recovery' | null - Session type
+        //   day: 0-6 | null - Scheduled day (Mon-Sun), null if not scheduled
+        //   isTarget: boolean - Whether this is a target/goal session
+
+        const allSessions = [
+            // Strength - Target Sessions (3 + 1 extra = 4 per week)
+            { name: 'Upper Body', type: 'Strength', day: 0, isTarget: true },
+            { name: 'Lower Body', type: 'Strength', day: 2, isTarget: true },
+            { name: 'Core Workout', type: 'Strength', day: 4, isTarget: true },
+            { name: 'Extra Workout', type: null, day: 6, isTarget: true },
+            // Cardio - Optional (no target defined yet)
+            { name: 'Run', type: 'Cardio', day: null, isTarget: false },
+            { name: 'Spin', type: 'Cardio', day: null, isTarget: false },
+            // Recovery - Optional (no target defined yet)
+            { name: 'Rehab Session', type: 'Recovery', day: null, isTarget: false },
+            { name: 'Contrast Therapy', type: 'Recovery', day: null, isTarget: false },
+            { name: 'Compression Therapy', type: 'Recovery', day: null, isTarget: false }
+        ];
+
+        const targetSessions = allSessions.filter(s => s.isTarget && s.type !== 'Cardio' && s.type !== 'Recovery');
+        const cardioSessions = allSessions.filter(s => s.type === 'Cardio');
+        const recoverySessions = allSessions.filter(s => s.type === 'Recovery');
+
+        let selectedWeekStart = null;
+        let selectedMonth = new Date();
+        let currentEditingSession = null;
+
+        function switchTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            // Show selected tab
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+
+            // Render calendar if switching to that tab
+            if (tabName === 'session-log') {
+                renderCalendar();
+            }
+        }
+
+        function getMonday(date) {
+            const d = new Date(date);
+            const day = d.getDay();
+            const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+            return new Date(d.setDate(diff));
+        }
+
+        function getWeekDateRange(monday) {
+            const start = new Date(monday);
+            start.setHours(0, 0, 0, 0);
+            const end = new Date(monday);
+            end.setDate(end.getDate() + 6);
+            end.setHours(23, 59, 59, 999);
+            return { start: start, end: end };
+        }
+
+        function isWeekPassed(weekStart) {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const weekEnd = new Date(weekStart);
+            weekEnd.setDate(weekEnd.getDate() + 6);
+            weekEnd.setHours(23, 59, 59, 999);
+            return weekEnd < today;
+        }
+
+        function getWeekSessionsWithStatus(weekStart) {
+            // Returns all sessions with calculated status for the week
+            const history = loadHistory();
+            const range = getWeekDateRange(weekStart);
+            const weekPassed = isWeekPassed(weekStart);
+
+            const completedSessions = [];
+            const missedSessions = [];
+
+            // Collect completed sessions
+            history.forEach(h => {
+                const hDate = new Date(h.date + 'T00:00:00');
+                if (hDate >= range.start && hDate <= range.end) {
+                    completedSessions.push({
+                        name: h.name,
+                        type: h.type,
+                        date: h.date,
+                        status: 'Done'
+                    });
+                }
+            });
+
+            // Add calculated missed/not done for past weeks
+            if (weekPassed) {
+                allSessions.forEach(session => {
+                    // Check if this session was completed this week
+                    const wasCompleted = history.some(h => {
+                        const hDate = new Date(h.date + 'T00:00:00');
+                        return h.name === session.name && hDate >= range.start && hDate <= range.end;
+                    });
+
+                    // If not completed and was scheduled
+                    if (!wasCompleted && session.day !== null && session.day !== undefined) {
+                        const sessionDate = new Date(range.start);
+                        sessionDate.setDate(sessionDate.getDate() + session.day);
+                        const dateStr = sessionDate.toISOString().split('T')[0];
+
+                        missedSessions.push({
+                            name: session.name,
+                            type: session.type,
+                            date: dateStr,
+                            status: session.isTarget ? 'Missed' : 'Not Done'
+                        });
+                    }
+                });
+            }
+
+            return [...completedSessions, ...missedSessions];
+        }
+
+        function formatWeekDisplay(monday) {
+            const range = getWeekDateRange(monday);
+            const month1 = range.start.toLocaleDateString('en-US', { month: 'short' });
+            const day1 = range.start.getDate();
+            const month2 = range.end.toLocaleDateString('en-US', { month: 'short' });
+            const day2 = range.end.getDate();
+            const year = range.end.getFullYear();
+            return `${month1} ${day1} – ${month2} ${day2}, ${year}`;
+        }
+
+        function initializeWeek() {
+            // Start from current week
+            const today = new Date();
+            selectedWeekStart = getMonday(today);
+            updateWeekDisplay();
+        }
+
+        function previousWeek() {
+            const trainingStart = new Date(2026, 2, 30); // March 30, 2026
+            const newWeekStart = new Date(selectedWeekStart);
+            newWeekStart.setDate(newWeekStart.getDate() - 7);
+
+            // Don't go before training start date
+            if (newWeekStart >= trainingStart) {
+                selectedWeekStart = newWeekStart;
+                updateWeekDisplay();
+            }
+        }
+
+        function nextWeek() {
+            selectedWeekStart.setDate(selectedWeekStart.getDate() + 7);
+            updateWeekDisplay();
+        }
+
+        function resetToThisWeek() {
+            const today = new Date();
+            selectedWeekStart = getMonday(today);
+            updateWeekDisplay();
+        }
+
+        function previousMonth() {
+            const trainingStart = new Date('2026-03-30');
+            const potentialMonth = new Date(selectedMonth);
+            potentialMonth.setMonth(potentialMonth.getMonth() - 1);
+
+            // Prevent going before March 2026 (training start)
+            if (potentialMonth.getFullYear() < trainingStart.getFullYear() ||
+                (potentialMonth.getFullYear() === trainingStart.getFullYear() && potentialMonth.getMonth() < trainingStart.getMonth())) {
+                return;
+            }
+
+            selectedMonth = potentialMonth;
+            renderCalendar();
+        }
+
+        function nextMonth() {
+            selectedMonth.setMonth(selectedMonth.getMonth() + 1);
+            renderCalendar();
+        }
+
+        function resetToThisMonth() {
+            selectedMonth = new Date();
+            renderCalendar();
+        }
+
+        function updateWeekDisplay() {
+            document.getElementById('week-display').textContent = formatWeekDisplay(selectedWeekStart);
+            updateSummary();
+            renderSessions();
+        }
+
+        // Cloud Sync Functions
+        function normalizeDateFormat(date) {
+            // Convert various date formats to YYYY-MM-DD
+            if (typeof date === 'string') {
+                // Handle ISO timestamp (2026-05-16T04:00:00.000Z)
+                if (date.match(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/)) {
+                    return date.split('T')[0];
+                }
+
+                // If already in YYYY-MM-DD format, return as-is
+                if (date.match(/^\d{4}-\d{2}-\d{2}/)) {
+                    return date.substring(0, 10);
+                }
+
+                // Handle Google Sheets format (Fri May 15 2026 00:00:00 GMT...)
+                // Simple approach: split by spaces and find the month name
+                const words = date.split(/\s+/);
+                const monthMap = {
+                    'January': '01', 'February': '02', 'March': '03', 'April': '04',
+                    'May': '05', 'June': '06', 'July': '07', 'August': '08',
+                    'September': '09', 'October': '10', 'November': '11', 'December': '12'
+                };
+
+                for (let i = 0; i < words.length - 2; i++) {
+                    if (monthMap[words[i]]) {
+                        const month = monthMap[words[i]];
+                        const day = words[i + 1];
+                        const year = words[i + 2];
+
+                        if (day && year && /^\d{1,2}$/.test(day) && /^\d{4}$/.test(year)) {
+                            return `${year}-${month}-${String(day).padStart(2, '0')}`;
+                        }
+                    }
+                }
+
+                return date;
+            }
+            return date;
+        }
+
+        function loadHistory() {
+            // Load from localStorage immediately (synchronous, no await needed)
+            const saved = localStorage.getItem('history');
+            const cachedData = saved ? JSON.parse(saved) : [];
+
+            // Fire off cloud sync in background WITHOUT awaiting
+            if (GOOGLE_APPS_SCRIPT_URL) {
+                syncCloudInBackground();
+            }
+
+            // Return cached data immediately
+            return cachedData;
+        }
+
+        async function syncCloudInBackground() {
+            // Update status to "Syncing..."
+            const statusEl = document.getElementById('sync-status');
+            if (statusEl) {
+                statusEl.textContent = '⟳ Syncing...';
+                statusEl.style.color = 'var(--text-secondary)';
+            }
+
+            try {
+                const response = await fetch(GOOGLE_APPS_SCRIPT_URL + '?action=getWorkouts');
+                const result = await response.json();
+                if (result.success) {
+                    const normalizedWorkouts = result.workouts.map(w => ({
+                        ...w,
+                        date: normalizeDateFormat(w.date)
+                    }));
+
+                    // Merge cloud data with local data to avoid losing newly added workouts
+                    const localData = localStorage.getItem('history');
+                    const localWorkouts = localData ? JSON.parse(localData) : [];
+
+                    // Create a map of cloud workouts for quick lookup
+                    const cloudMap = new Map();
+                    normalizedWorkouts.forEach(w => {
+                        const key = `${w.name}|${w.date}`;
+                        cloudMap.set(key, w);
+                    });
+
+                    // Keep local entries that aren't in cloud (newly added, not yet synced)
+                    const localOnlyWorkouts = localWorkouts.filter(local => {
+                        const key = `${local.name}|${local.date}`;
+                        return !cloudMap.has(key);
+                    });
+
+                    // Merge: cloud data + local-only data
+                    const mergedWorkouts = [...normalizedWorkouts, ...localOnlyWorkouts];
+                    localStorage.setItem('history', JSON.stringify(mergedWorkouts));
+
+                    // Update status to "Synced"
+                    if (statusEl) {
+                        statusEl.textContent = '✓ Synced';
+                        statusEl.style.color = 'var(--status-completed)';
+                    }
+                }
+            } catch (error) {
+                // Show offline status
+                if (statusEl) {
+                    statusEl.textContent = '⚠ Offline';
+                    statusEl.style.color = 'var(--text-secondary)';
+                }
+            }
+        }
+
+        async function saveHistory(data) {
+            // Save to localStorage first (always works)
+            localStorage.setItem('history', JSON.stringify(data));
+
+            // Sync to cloud if configured
+            if (GOOGLE_APPS_SCRIPT_URL) {
+                try {
+                    // Push each workout individually to match sheet structure
+                    // This is handled by logWorkout/editWorkout/deleteWorkout functions
+                } catch (error) {
+                    console.log('Cloud sync error:', error);
+                }
+            }
+        }
+
+        function renderSessions() {
+            const targetGrid = document.getElementById('sessions-grid');
+            const cardioGrid = document.getElementById('cardio-grid');
+            const recoveryGrid = document.getElementById('recovery-grid');
+            targetGrid.innerHTML = '';
+            cardioGrid.innerHTML = '';
+            recoveryGrid.innerHTML = '';
+
+            const range = getWeekDateRange(selectedWeekStart);
+            const history = loadHistory();
+            const weekPassed = isWeekPassed(selectedWeekStart);
+
+            const renderSessionsToGrid = (sessions, grid) => {
+                sessions.forEach((session) => {
+                    const card = document.createElement('div');
+                    card.className = 'session-card';
+
+                    const completed = history.some(h => {
+                        const hDate = new Date(h.date + 'T00:00:00');
+                        return h.name === session.name && hDate >= range.start && hDate <= range.end;
+                    });
+
+                    let statusText = 'To Do';
+                    let statusClass = 'pending';
+
+                    if (completed) {
+                        card.classList.add('completed');
+                        statusText = 'Completed';
+                        statusClass = 'completed';
+                    } else if (weekPassed && session.day !== null && session.day !== undefined) {
+                        // Past week with uncompleted session
+                        statusText = session.isTarget ? 'Missed' : 'Not Done';
+                        statusClass = session.isTarget ? 'missed' : 'not-done';
+                        card.classList.add('missed');
+                    }
+
+                    const type = session.name === 'Extra Workout' ? 'Extra' : session.type;
+
+                    card.innerHTML = `
+                        <div class="session-name">${session.name}</div>
+                        <div class="session-type-badge ${type.toLowerCase()}">${type}</div>
+                        <div class="status-badge ${statusClass}">${statusText}</div>
+                    `;
+
+                    card.onclick = () => toggleSession(session.name);
+                    grid.appendChild(card);
+                });
+            };
+
+            renderSessionsToGrid(targetSessions, targetGrid);
+            renderSessionsToGrid(cardioSessions, cardioGrid);
+            renderSessionsToGrid(recoverySessions, recoveryGrid);
+        }
+
+        async function toggleSession(sessionName) {
+            const history = loadHistory();
+            const range = getWeekDateRange(selectedWeekStart);
+            const today = new Date();
+            const todayStr = today.toISOString().split('T')[0];
+
+            // Check if already completed this week
+            const existingIndex = history.findIndex(h => {
+                const hDate = new Date(h.date + 'T00:00:00');
+                return h.name === sessionName && hDate >= range.start && hDate <= range.end;
+            });
+
+            if (existingIndex >= 0) {
+                // Remove the completion
+                history.splice(existingIndex, 1);
+            } else {
+                // Add completion or show modal for Extra Workout
+                if (sessionName === 'Extra Workout') {
+                    openWorkoutTypeModal(todayStr);
+                } else {
+                    const session = allSessions.find(s => s.name === sessionName);
+                    history.push({
+                        name: sessionName,
+                        type: session.type,
+                        date: todayStr
+                    });
+                }
+            }
+
+            saveHistory(history);
+            renderSessions();
+            renderCalendar();
+            updateSummary();
+        }
+
+        function openWorkoutTypeModal(date) {
+            const options = document.getElementById('modal-options');
+            options.innerHTML = `
+                <button onclick="logExtraWorkout('Upper Body', '${date}')">Upper Body</button>
+                <button onclick="logExtraWorkout('Lower Body', '${date}')">Lower Body</button>
+                <button onclick="logExtraWorkout('Core Workout', '${date}')">Core Workout</button>
+                <button onclick="logExtraWorkout('Run', '${date}')">Run</button>
+                <button onclick="logExtraWorkout('Spin', '${date}')">Spin</button>
+            `;
+            document.getElementById('workoutTypeModal').classList.add('active');
+        }
+
+        async function logExtraWorkout(type, date) {
+            const typeMap = {
+                'Upper Body': 'Strength',
+                'Lower Body': 'Strength',
+                'Core Workout': 'Strength',
+                'Run': 'Cardio',
+                'Spin': 'Cardio'
+            };
+
+            const history = loadHistory();
+            history.push({
+                name: type,
+                type: typeMap[type],
+                date: date,
+                isExtraWorkout: true
+            });
+
+            await saveHistory(history);
+
+            // Sync to cloud if configured
+            if (GOOGLE_APPS_SCRIPT_URL) {
+                try {
+                    await fetch(GOOGLE_APPS_SCRIPT_URL, {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            action: 'logWorkout',
+                            name: type,
+                            date: date,
+                            type: typeMap[type]
+                        })
+                    });
+                } catch (error) {
+                    console.log('Cloud sync error:', error);
+                }
+            }
+
+            document.getElementById('workoutTypeModal').classList.remove('active');
+            // Clear Quick Log form if it was used
+            document.getElementById('workout-select').value = '';
+            document.getElementById('date-completed').value = '';
+            renderSessions();
+            renderCalendar();
+            updateSummary();
+        }
+
+        function updateSummary() {
+            const history = loadHistory();
+            const range = getWeekDateRange(selectedWeekStart);
+            const weekPassed = isWeekPassed(selectedWeekStart);
+
+            // Count by type for selected week
+            const strengthCount = history.filter(h => {
+                const hDate = new Date(h.date + 'T00:00:00');
+                return h.type === 'Strength' && hDate >= range.start && hDate <= range.end;
+            }).length;
+
+            const cardioCount = history.filter(h => {
+                const hDate = new Date(h.date + 'T00:00:00');
+                return h.type === 'Cardio' && hDate >= range.start && hDate <= range.end;
+            }).length;
+
+            const recoveryCount = history.filter(h => {
+                const hDate = new Date(h.date + 'T00:00:00');
+                return h.type === 'Recovery' && hDate >= range.start && hDate <= range.end;
+            }).length;
+
+            // Calculate missed for past weeks
+            let strengthMissed = 0;
+            if (weekPassed) {
+                const strengthTargets = allSessions.filter(s => s.isTarget && s.type === 'Strength');
+                strengthTargets.forEach(s => {
+                    const isCompleted = history.some(h => {
+                        const hDate = new Date(h.date + 'T00:00:00');
+                        return h.name === s.name && hDate >= range.start && hDate <= range.end;
+                    });
+                    if (!isCompleted && s.day !== null) strengthMissed++;
+                });
+            }
+
+            // Calculate targets based on isTarget flag
+            const strengthTargets = allSessions.filter(s => s.isTarget && s.type === 'Strength');
+            const strengthScheduled = strengthTargets.filter(s => s.day !== null).length;
+            const strengthPending = weekPassed ? strengthMissed : Math.max(0, strengthScheduled - strengthCount);
+
+            const cardioTargets = allSessions.filter(s => s.isTarget && s.type === 'Cardio');
+            const cardioPending = cardioTargets.length > 0 ? Math.max(0, cardioTargets.length - cardioCount) : 0;
+
+            const recoveryTargets = allSessions.filter(s => s.isTarget && s.type === 'Recovery');
+            const recoveryPending = recoveryTargets.length > 0 ? Math.max(0, recoveryTargets.length - recoveryCount) : 0;
+
+            // Calculate training week number (week 1, 2, 3, etc.)
+            const trainingStartDate = new Date(2026, 2, 30); // March 30, 2026
+            const trainingStartMonday = getMonday(trainingStartDate);
+            const selectedMonday = getMonday(selectedWeekStart);
+
+            // Calculate week number based on how many weeks since training started
+            const weeksDiff = Math.floor((selectedMonday - trainingStartMonday) / (7 * 24 * 60 * 60 * 1000));
+            const trainingWeekNumber = Math.max(1, weeksDiff + 1);
+
+            const grid = document.getElementById('summary-grid');
+            grid.innerHTML = `
+                <div class="summary-card">
+                    <label>Strength</label>
+                    <div class="number">${strengthCount}</div>
+                </div>
+                <div class="summary-card">
+                    <label>Cardio</label>
+                    <div class="number">${cardioCount}</div>
+                </div>
+                <div class="summary-card">
+                    <label>Recovery</label>
+                    <div class="number">${recoveryCount}</div>
+                </div>
+                <div class="summary-card">
+                    <label>Target Progress</label>
+                    <div class="number">${strengthCount}/${strengthScheduled}</div>
+                    <div class="completion-rate">${strengthPending} to go</div>
+                </div>
+                <div class="summary-card">
+                    <label>Training Week</label>
+                    <div class="number">${trainingWeekNumber}</div>
+                </div>
+            `;
+        }
+
+        function renderCalendar() {
+            const year = selectedMonth.getFullYear();
+            const month = selectedMonth.getMonth();
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, month + 1, 0);
+            const startDate = getMonday(firstDay);
+            if (startDate > firstDay) {
+                startDate.setDate(startDate.getDate() - 7);
+            }
+
+            const history = loadHistory();
+            const grid = document.getElementById('calendar-grid');
+            grid.innerHTML = '';
+
+            // Day headers
+            const dayHeaders = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+            dayHeaders.forEach(day => {
+                const header = document.createElement('div');
+                header.className = 'calendar-day-header';
+                header.textContent = day;
+                grid.appendChild(header);
+            });
+
+            // Days
+            let currentDate = new Date(startDate);
+            while (currentDate <= lastDay) {
+                const day = document.createElement('div');
+                day.className = 'calendar-day';
+
+                if (currentDate.getMonth() !== month) {
+                    day.classList.add('other-month');
+                }
+
+                const dayNumber = currentDate.getDate();
+                const dateStr = currentDate.toISOString().split('T')[0];
+                const daySessions = history.filter(h => h.date === dateStr);
+
+                day.innerHTML = `<div class="calendar-day-number">${dayNumber}</div>`;
+
+                if (daySessions.length > 0) {
+                    const sessionsDiv = document.createElement('div');
+                    sessionsDiv.className = 'calendar-sessions';
+                    daySessions.forEach(session => {
+                        const sessionEl = document.createElement('div');
+                        sessionEl.className = `calendar-session ${session.type ? session.type.toLowerCase() : 'strength'}`;
+                        sessionEl.textContent = session.name;
+                        sessionEl.onclick = () => openSessionModal(session, dateStr);
+                        sessionsDiv.appendChild(sessionEl);
+                    });
+                    day.appendChild(sessionsDiv);
+                } else {
+                    // Make empty days clickable to add a workout
+                    day.style.cursor = 'pointer';
+                    day.onclick = () => openAddWorkoutModal(dateStr);
+                }
+
+                grid.appendChild(day);
+                currentDate.setDate(currentDate.getDate() + 1);
+            }
+
+            // Update calendar month headers
+            const monthName = firstDay.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+            document.getElementById('calendar-month').textContent = monthName;
+            document.getElementById('month-display').textContent = monthName;
+        }
+
+        function openSessionModal(session, dateStr) {
+            currentEditingSession = { ...session, date: dateStr };
+            document.getElementById('modal-session-title').textContent = session.name;
+            const date = new Date(dateStr + 'T00:00:00');
+            document.getElementById('modal-session-date').textContent = date.toLocaleDateString('en-US', {
+                weekday: 'long',
+                month: 'long',
+                day: 'numeric',
+                year: 'numeric'
+            });
+            document.getElementById('sessionDetailModal').classList.add('active');
+        }
+
+        function closeSessionModal() {
+            document.getElementById('sessionDetailModal').classList.remove('active');
+        }
+
+        async function deleteLogSession() {
+            if (!currentEditingSession) return;
+
+            const history = loadHistory();
+            const index = history.findIndex(h =>
+                h.name === currentEditingSession.name &&
+                h.date === currentEditingSession.date
+            );
+
+            if (index >= 0) {
+                history.splice(index, 1);
+                await saveHistory(history);
+
+                // Sync to cloud if configured
+                if (GOOGLE_APPS_SCRIPT_URL) {
+                    try {
+                        const response = await fetch(GOOGLE_APPS_SCRIPT_URL, {
+                            method: 'POST',
+                            body: JSON.stringify({
+                                action: 'deleteWorkout',
+                                name: currentEditingSession.name,
+                                date: currentEditingSession.date
+                            })
+                        });
+                        const result = await response.json();
+                        console.log('Delete response from Google Apps Script:', result);
+                    } catch (error) {
+                        console.log('Cloud sync error:', error);
+                    }
+                }
+            }
+
+            closeSessionModal();
+            renderSessions();
+            renderCalendar();
+            updateSummary();
+        }
+
+        function openEditModal() {
+            if (!currentEditingSession) return;
+            document.getElementById('edit-date-input').value = currentEditingSession.date;
+            document.getElementById('sessionDetailModal').classList.remove('active');
+            document.getElementById('editDateModal').classList.add('active');
+        }
+
+        function closeEditModal() {
+            document.getElementById('editDateModal').classList.remove('active');
+            document.getElementById('sessionDetailModal').classList.add('active');
+        }
+
+        function openAddWorkoutModal(dateStr) {
+            document.getElementById('add-workout-date-input').value = dateStr;
+            document.getElementById('add-workout-select').value = '';
+            document.getElementById('addWorkoutModal').classList.add('active');
+        }
+
+        function closeAddWorkoutModal() {
+            document.getElementById('addWorkoutModal').classList.remove('active');
+        }
+
+        async function submitAddWorkout() {
+            const workoutName = document.getElementById('add-workout-select').value;
+            const dateStr = document.getElementById('add-workout-date-input').value;
+
+            if (!workoutName || !dateStr) {
+                alert('Please select a session and date');
+                return;
+            }
+
+            // Special handling for Extra Workout - open modal to select type
+            if (workoutName === 'Extra Workout') {
+                closeAddWorkoutModal();
+                openWorkoutTypeModal(dateStr);
+                return;
+            }
+
+            const session = allSessions.find(s => s.name === workoutName);
+            const history = loadHistory();
+            history.push({
+                name: workoutName,
+                type: session.type,
+                date: dateStr
+            });
+
+            await saveHistory(history);
+
+            // Sync to cloud if configured
+            if (GOOGLE_APPS_SCRIPT_URL) {
+                try {
+                    await fetch(GOOGLE_APPS_SCRIPT_URL, {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            action: 'logWorkout',
+                            name: workoutName,
+                            date: dateStr,
+                            type: session.type
+                        })
+                    });
+                } catch (error) {
+                    console.log('Cloud sync error:', error);
+                }
+            }
+
+            closeAddWorkoutModal();
+            renderSessions();
+            renderCalendar();
+            updateSummary();
+        }
+
+        async function saveEditedDate() {
+            if (!currentEditingSession) return;
+
+            const newDate = document.getElementById('edit-date-input').value;
+            if (!newDate) return;
+
+            const history = loadHistory();
+            const index = history.findIndex(h =>
+                h.name === currentEditingSession.name &&
+                h.date === currentEditingSession.date
+            );
+
+            if (index >= 0) {
+                history[index].date = newDate;
+                await saveHistory(history);
+
+                // Sync to cloud if configured
+                if (GOOGLE_APPS_SCRIPT_URL) {
+                    try {
+                        await fetch(GOOGLE_APPS_SCRIPT_URL, {
+                            method: 'POST',
+                            body: JSON.stringify({
+                                action: 'editWorkout',
+                                name: currentEditingSession.name,
+                                oldDate: currentEditingSession.date,
+                                newDate: newDate,
+                                type: currentEditingSession.type
+                            })
+                        });
+                    } catch (error) {
+                        console.log('Cloud sync error:', error);
+                    }
+                }
+            }
+
+            closeEditModal();
+            renderCalendar();
+            renderSessions();
+            updateSummary();
+        }
+
+        function parseCSVLine(line) {
+            const result = [];
+            let current = '';
+            let inQuotes = false;
+
+            for (let i = 0; i < line.length; i++) {
+                const char = line[i];
+                if (char === '"') {
+                    inQuotes = !inQuotes;
+                } else if (char === ',' && !inQuotes) {
+                    result.push(current.trim());
+                    current = '';
+                } else {
+                    current += char;
+                }
+            }
+            result.push(current.trim());
+            return result;
+        }
+
+        function initializeHistoricalData() {
+            // Historical data from Notion export - only "Done" entries
+            const historicalCSV = `Name,Completed Date,Created time,Deadline,Done,Type,Week
+Upper Body,"April 7, 2026","April 11, 2026 10:38 PM","April 12, 2026",Done,Strength,2026-W15
+Lower Body,"April 1, 2026","April 11, 2026 10:38 PM","April 5, 2026",Done,Strength,2026-W14
+Core Workout,"April 12, 2026","April 11, 2026 10:38 PM","April 12, 2026",Done,Strength,2026-W15
+Lower Body,"April 5, 2026","April 11, 2026 10:38 PM","April 5, 2026",Done,Strength,2026-W14
+Rehab Session,"April 2, 2026","April 11, 2026 10:38 PM","April 5, 2026",Done,Recovery,2026-W14
+Contrast Therapy,"April 5, 2026","April 11, 2026 10:38 PM","April 5, 2026",Done,Recovery,2026-W14
+Compression Therapy,"April 7, 2026","April 11, 2026 10:38 PM","April 12, 2026",Done,Recovery,2026-W15
+Lower Body,"April 9, 2026","April 11, 2026 11:01 PM","April 12, 2026",Done,Strength,2026-W15
+Upper Body,"April 12, 2026","April 11, 2026 11:01 PM","April 12, 2026",Done,Strength,2026-W15
+Upper Body,"March 30, 2026","April 11, 2026 11:04 PM","April 5, 2026",Done,Strength,2026-W14
+Lower Body,"April 14, 2026","April 13, 2026 11:13 AM","April 19, 2026",Done,Strength,2026-W16
+Rehab Session,"April 26, 2026","April 20, 2026 12:00 AM","April 26, 2026",Done,Recovery,2026-W17
+Compression Therapy,"April 22, 2026","April 20, 2026 12:00 AM","April 26, 2026",Done,Recovery,2026-W17
+Contrast Therapy,"April 25, 2026","April 20, 2026 12:01 AM","April 26, 2026",Done,Recovery,2026-W17
+Lower Body,"April 22, 2026","April 20, 2026 12:17 AM","April 26, 2026",Done,Strength,2026-W17
+Core Workout,"April 26, 2026","April 20, 2026 12:17 AM","April 26, 2026",Done,Strength,2026-W17
+Upper Body,"April 25, 2026","April 20, 2026 12:17 AM","April 26, 2026",Done,Strength,2026-W17
+Core Workout,"May 3, 2026","April 27, 2026 12:06 AM","May 3, 2026",Done,Strength,2026-W18
+Contrast Therapy,"May 3, 2026","April 27, 2026 12:08 AM","May 3, 2026",Done,Recovery,2026-W18
+Upper Body,"May 1, 2026","April 27, 2026 12:10 AM","May 3, 2026",Done,Strength,2026-W18
+Lower Body,"May 2, 2026","April 27, 2026 12:11 AM","May 3, 2026",Done,Strength,2026-W18
+Core Workout,"May 7, 2026","May 4, 2026 12:11 AM","May 10, 2026",Done,Strength,2026-W19
+Run,"May 9, 2026","May 4, 2026 12:11 AM","May 10, 2026",Done,Cardio,2026-W19
+Lower Body,"May 11, 2026","May 4, 2026 12:16 AM","May 10, 2026",Done,Strength,2026-W19
+Upper Body,"May 5, 2026","May 4, 2026 12:16 AM","May 10, 2026",Done,Strength,2026-W19
+Upper Body,"May 13, 2026","May 11, 2026 12:08 AM","May 17, 2026",Done,Strength,2026-W20`;
+
+            const history = loadHistory();
+            const lines = historicalCSV.trim().split('\n');
+
+            for (let i = 1; i < lines.length; i++) {
+                const parts = parseCSVLine(lines[i]);
+                if (parts.length < 6) continue;
+
+                const name = parts[0].replace(/^"|"$/g, '');
+                const dateStr = parts[1].replace(/^"|"$/g, '');
+                const status = parts[4].replace(/^"|"$/g, '');
+                const type = parts[5].replace(/^"|"$/g, '');
+
+                if (!dateStr || status !== 'Done') continue;
+
+                // Parse date like "April 7, 2026"
+                const date = new Date(dateStr);
+                if (isNaN(date)) continue;
+
+                const dateISO = date.toISOString().split('T')[0];
+                const isDuplicate = history.some(h => h.name === name && h.date === dateISO);
+
+                if (!isDuplicate) {
+                    history.push({
+                        name: name,
+                        type: type,
+                        date: dateISO
+                    });
+                }
+            }
+
+            saveHistory(history);
+        }
+
+        async function logWorkout() {
+            const name = document.getElementById('workout-select').value;
+            const date = document.getElementById('date-completed').value;
+
+            if (!name || !date) {
+                alert('Please select a session and date');
+                return;
+            }
+
+            // Special handling for Extra Workout - open modal to select type
+            if (name === 'Extra Workout') {
+                openWorkoutTypeModal(date);
+                return;
+            }
+
+            const session = allSessions.find(s => s.name === name);
+
+            const history = loadHistory();
+            history.push({
+                name: name,
+                type: session.type,
+                date: date
+            });
+
+            await saveHistory(history);
+
+            // Sync to cloud if configured
+            if (GOOGLE_APPS_SCRIPT_URL) {
+                try {
+                    await fetch(GOOGLE_APPS_SCRIPT_URL, {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            action: 'logWorkout',
+                            name: name,
+                            date: date,
+                            type: session.type || ''
+                        })
+                    });
+                } catch (error) {
+                    console.log('Cloud sync error:', error);
+                }
+            }
+
+            renderSessions();
+            renderCalendar();
+            updateSummary();
+            updateSummary();
+
+            document.getElementById('workout-select').value = '';
+            document.getElementById('date-completed').value = '';
+        }
+
+        // Populate quick log select and add workout select
+        function populateWorkoutSelect() {
+            const quickLogSelect = document.getElementById('workout-select');
+            const addWorkoutSelect = document.getElementById('add-workout-select');
+
+            allSessions.forEach(session => {
+                // Quick Log dropdown
+                const option1 = document.createElement('option');
+                option1.value = session.name;
+                option1.textContent = session.name;
+                quickLogSelect.appendChild(option1);
+
+                // Add Workout modal dropdown
+                const option2 = document.createElement('option');
+                option2.value = session.name;
+                option2.textContent = session.name;
+                addWorkoutSelect.appendChild(option2);
+            });
+        }
+
+        // Initialize with proper local date handling
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        document.getElementById('date-completed').value = `${year}-${month}-${day}`;
+        document.getElementById('current-date').textContent = new Date().toLocaleDateString('en-US', {
+            weekday: 'long',
+            month: 'long',
+            day: 'numeric',
+            year: 'numeric'
+        });
+
+        // Initialize app with async data loading
+        (() => {
+            initializeHistoricalData();
+
+            // Load history (from cloud if configured, otherwise local)
+            const history = loadHistory();
+
+            // Check for uncategorized Extra Workouts
+            const uncategorizedExtra = history.filter(h => h.name === 'Extra Workout' && !h.type);
+            if (uncategorizedExtra.length > 0) {
+                console.log('📋 Data gaps found: Extra Workouts without type categorization:');
+                uncategorizedExtra.forEach(h => {
+                    console.log(`  • Extra Workout on ${h.date}`);
+                });
+                console.log(`\nTotal gaps: ${uncategorizedExtra.length} Extra Workouts need type categorization`);
+            }
+
+            // Log cloud sync status
+            if (GOOGLE_APPS_SCRIPT_URL) {
+                console.log('☁️ Cloud sync enabled - data will sync across all devices');
+            } else {
+                console.log('💾 Cloud sync disabled - data stored locally only');
+            }
+
+            initializeWeek();
+            populateWorkoutSelect();
+            renderCalendar();
+        })();
+    </script>
+</body>
+</html>
