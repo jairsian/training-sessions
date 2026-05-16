@@ -415,9 +415,10 @@
             font-weight: 600;
             cursor: pointer;
             transition: all 0.15s ease;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            white-space: normal;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            text-align: center;
         }
 
         .calendar-session.strength {
@@ -651,7 +652,7 @@
 
         @media (max-width: 768px) {
             body {
-                padding: 20px;
+                padding: 20px 12px;
             }
 
             h1 {
@@ -663,12 +664,21 @@
             }
 
             .summary-grid {
-                grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+                grid-template-columns: repeat(3, 1fr);
                 gap: 12px;
             }
 
             .summary-card {
-                padding: 20px;
+                padding: 16px 12px;
+                font-size: 12px;
+            }
+
+            .summary-card label {
+                font-size: 11px;
+            }
+
+            .summary-card .number {
+                font-size: 18px;
             }
 
             .section-header {
@@ -684,8 +694,33 @@
                 grid-template-columns: 1fr;
             }
 
+            .calendar-container {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+
             .calendar-grid {
-                grid-template-columns: repeat(7, 1fr);
+                grid-template-columns: repeat(7, minmax(40px, 1fr));
+                gap: 1px;
+                min-width: 280px;
+            }
+
+            .calendar-day {
+                min-height: 50px;
+                padding: 4px 2px;
+                font-size: 11px;
+            }
+
+            .calendar-day-number {
+                font-size: 12px;
+                font-weight: 600;
+                margin-bottom: 2px;
+            }
+
+            .calendar-session {
+                font-size: 9px;
+                padding: 2px 3px;
+                margin: 1px 0;
             }
 
             .form-row {
@@ -721,7 +756,7 @@
         <div class="tabs">
             <button class="tab-button active" onclick="switchTab('this-week')">Dashboard</button>
             <button class="tab-button" onclick="switchTab('session-log')">Calendar</button>
-            <button class="tab-button" onclick="switchTab('quick-log')">Quick Log</button>
+            <button class="tab-button" onclick="switchTab('quick-log')">Log Session</button>
         </div>
 
         <!-- This Week Tab -->
@@ -771,7 +806,6 @@
         <!-- Quick Log Tab -->
         <div id="quick-log" class="tab-content">
             <div class="quick-log">
-                <h2>✏️ Quick Log</h2>
                 <div class="form-row">
                     <div class="form-group">
                         <label for="workout-select">Session</label>
@@ -1322,6 +1356,29 @@
             updateSummary();
         }
 
+        function generateWeekDots(history, range) {
+            // Generate dots for each day of the week (Mon-Sun)
+            const dayNames = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+            let html = '<div style="display: flex; justify-content: space-around; align-items: flex-start; gap: 4px;">';
+
+            for (let i = 0; i < 7; i++) {
+                const dayDate = new Date(range.start);
+                dayDate.setDate(dayDate.getDate() + i);
+                const dateStr = dayDate.toISOString().split('T')[0];
+
+                const hasSession = history.some(h => h.date === dateStr);
+                const dot = hasSession ? '●' : '○';
+
+                html += `<div style="display: flex; flex-direction: column; align-items: center; font-size: 14px;">
+                    <div>${dot}</div>
+                    <div style="font-size: 9px; color: var(--text-secondary); margin-top: 2px;">${dayNames[i]}</div>
+                </div>`;
+            }
+
+            html += '</div>';
+            return html;
+        }
+
         function updateSummary() {
             const history = loadHistory();
             const range = getWeekDateRange(selectedWeekStart);
@@ -1398,6 +1455,12 @@
                 <div class="summary-card">
                     <label>Training Week</label>
                     <div class="number">${trainingWeekNumber}</div>
+                </div>
+                <div class="summary-card">
+                    <label>This Week</label>
+                    <div class="number" style="font-size: 16px; font-weight: 400; padding: 8px 0;">
+                        ${generateWeekDots(history, range)}
+                    </div>
                 </div>
             `;
         }
