@@ -1658,7 +1658,8 @@
 
         function closeEditModal() {
             document.getElementById('editDateModal').classList.remove('active');
-            document.getElementById('sessionDetailModal').classList.add('active');
+            document.getElementById('sessionDetailModal').classList.remove('active');
+            currentEditingSession = null;
         }
 
         function openAddWorkoutModal(dateStr) {
@@ -1733,7 +1734,17 @@
             );
 
             if (index >= 0) {
-                history[index].date = newDate;
+                // Add to pending deletions for old entry (prevents sync from re-adding it)
+                const deleteKey = `${currentEditingSession.name}|${currentEditingSession.date}|${currentEditingSession.type}`;
+                pendingDeletions.add(deleteKey);
+
+                // Remove old entry and create new one (simpler for sync logic)
+                history.splice(index, 1);
+                history.push({
+                    name: currentEditingSession.name,
+                    date: newDate,
+                    type: currentEditingSession.type
+                });
                 await saveHistory(history);
 
                 // Sync to cloud if configured
