@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Training Sessions</title>
+    <link rel="icon" type="image/png" href="favicon.png" sizes="192x192">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
     <style>
         * {
             margin: 0;
@@ -656,11 +658,18 @@
             }
 
             h1 {
-                font-size: 32px;
+                font-size: 24px;
+                letter-spacing: -0.3px;
             }
 
             section h2 {
                 font-size: 20px;
+            }
+
+            .tabs {
+                width: 100%;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
             }
 
             .summary-grid {
@@ -743,7 +752,7 @@
         <header>
             <div style="display: flex; justify-content: space-between; align-items: center;">
                 <div>
-                    <h1>💪 Training Sessions</h1>
+                    <h1>Training Sessions</h1>
                     <div class="header-subtitle" id="current-date"></div>
                 </div>
                 <div id="sync-status" onclick="manualSync()" style="font-size: 13px; color: var(--text-secondary); padding: 8px 12px; border-radius: 8px; background: var(--surface-secondary); white-space: nowrap; cursor: pointer; transition: all 0.2s ease;" onmouseover="this.style.background='var(--surface)'; this.style.boxShadow='0 2px 8px rgba(0,0,0,0.1)'" onmouseout="this.style.background='var(--surface-secondary)'; this.style.boxShadow='none'">
