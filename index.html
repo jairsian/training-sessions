@@ -1,4 +1,11 @@
 <!DOCTYPE html>
+<script type="application/json" id="cowork-artifact-meta">
+{
+  "name": "Training Sessions",
+  "schemaVersion": 1,
+  "description": "Live training sessions dashboard tracking strength, cardio, and recovery workouts with calendar, weekly summary, and cloud sync to Google Sheets."
+}
+</script>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -888,6 +895,32 @@
         </div>
     </div>
 
+    <!-- Log Session Modal (from Dashboard) -->
+    <div id="logSessionModal" class="modal">
+        <div class="modal-content">
+            <h3 id="log-session-title"></h3>
+            <div class="form-group" style="margin-bottom: 24px;">
+                <label for="log-session-date">Date</label>
+                <input type="date" id="log-session-date">
+            </div>
+            <div id="log-session-type-group" class="form-group" style="margin-bottom: 24px; display: none;">
+                <label for="log-session-type">Session Type</label>
+                <select id="log-session-type">
+                    <option value="">Select type...</option>
+                    <option value="Upper Body">Upper Body</option>
+                    <option value="Lower Body">Lower Body</option>
+                    <option value="Core Workout">Core Workout</option>
+                    <option value="Run">Run</option>
+                    <option value="Spin">Spin</option>
+                </select>
+            </div>
+            <div class="modal-buttons">
+                <button class="cancel-btn" onclick="closeLogSessionModal()">Cancel</button>
+                <button onclick="confirmLogSession()">Log</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // ===== CLOUD SYNC CONFIGURATION =====
         // Google Apps Script deployment URL
@@ -1314,6 +1347,10 @@
                         <div class="session-type-badge ${type.toLowerCase()}">${type}</div>
                         <div class="status-badge ${statusClass}">${statusText}</div>
                     `;
+
+                    // Make card clickable to log session
+                    card.style.cursor = 'pointer';
+                    card.onclick = () => openLogSessionModal(session);
 
                     grid.appendChild(card);
                 });
@@ -1913,6 +1950,125 @@ Upper Body,"May 13, 2026","May 11, 2026 12:08 AM","May 17, 2026",Done,Strength,2
 
             document.getElementById('workout-select').value = '';
             document.getElementById('date-completed').value = '';
+        }
+
+        // Dashboard session logging
+        let pendingDashboardSession = null;
+
+        function openLogSessionModal(session) {
+            pendingDashboardSession = session;
+            document.getElementById('log-session-title').textContent = `Log ${session.name}`;
+
+            // Default to today
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            document.getElementById('log-session-date').value = `${year}-${month}-${day}`;
+
+            // Show type selector only for Extra Workout
+            const typeGroup = document.getElementById('log-session-type-group');
+            const typeSelect = document.getElementById('log-session-type');
+            if (session.name === 'Extra Workout') {
+                typeGroup.style.display = 'block';
+                typeSelect.value = '';
+            } else {
+                typeGroup.style.display = 'none';
+                typeSelect.value = '';
+            }
+
+            document.getElementById('logSessionModal').classList.add('active');
+        }
+
+        function closeLogSessionModal() {
+            document.getElementById('logSessionModal').classList.remove('active');
+            pendingDashboardSession = null;
+        }
+
+        async function confirmLogSession() {
+            if (!pendingDashboardSession) return;
+
+            const dateStr = document.getElementById('log-session-date').value;
+            if (!dateStr) {
+                alert('Please select a date');
+                return;
+            }
+
+            // Special handling for Extra Workout - require type selection
+            if (pendingDashboardSession.name === 'Extra Workout') {
+                const typeSelect = document.getElementById('log-session-type');
+                const selectedType = typeSelect.value;
+                if (!selectedType) {
+                    alert('Please select a session type');
+                    return;
+                }
+
+                const typeMap = {
+                    'Upper Body': 'Strength',
+                    'Lower Body': 'Strength',
+                    'Core Workout': 'Strength',
+                    'Run': 'Cardio',
+                    'Spin': 'Cardio'
+                };
+
+                const history = loadHistory();
+                history.push({
+                    name: selectedType,
+                    type: typeMap[selectedType],
+                    date: dateStr,
+                    isExtraWorkout: true
+                });
+
+                await saveHistory(history);
+
+                // Sync to cloud if configured
+                if (GOOGLE_APPS_SCRIPT_URL) {
+                    try {
+                        await fetch(GOOGLE_APPS_SCRIPT_URL, {
+                            method: 'POST',
+                            body: JSON.stringify({
+                                action: 'logWorkout',
+                                name: selectedType,
+                                date: dateStr,
+                                type: typeMap[selectedType]
+                            })
+                        });
+                    } catch (error) {
+                        console.log('Cloud sync error:', error);
+                    }
+                }
+            } else {
+                const history = loadHistory();
+                history.push({
+                    name: pendingDashboardSession.name,
+                    type: pendingDashboardSession.type,
+                    date: dateStr
+                });
+
+                await saveHistory(history);
+
+                // Sync to cloud if configured
+                if (GOOGLE_APPS_SCRIPT_URL) {
+                    try {
+                        await fetch(GOOGLE_APPS_SCRIPT_URL, {
+                            method: 'POST',
+                            body: JSON.stringify({
+                                action: 'logWorkout',
+                                name: pendingDashboardSession.name,
+                                date: dateStr,
+                                type: pendingDashboardSession.type
+                            })
+                        });
+                    } catch (error) {
+                        console.log('Cloud sync error:', error);
+                    }
+                }
+            }
+
+            closeLogSessionModal();
+            renderSessions();
+            renderCalendar();
+            updateSummary();
         }
 
         // Populate quick log select and add workout select
