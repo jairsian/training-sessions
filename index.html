@@ -968,17 +968,17 @@
         const allSessions = [
             // Strength - Target Sessions (3 + 1 extra = 4 per week)
             { name: 'Upper Body', type: 'Strength', day: 0, isTarget: true },
-            { name: 'Lower Body', type: 'Strength', day: 2, isTarget: true },
             { name: 'Core Workout', type: 'Strength', day: 4, isTarget: true },
+            { name: 'Lower Body', type: 'Strength', day: 2, isTarget: true },
             { name: 'Extra Workout', type: null, day: 6, isTarget: true },
             // Cardio - Optional (no target defined yet)
+            { name: 'Row', type: 'Cardio', day: null, isTarget: false },
             { name: 'Run', type: 'Cardio', day: null, isTarget: false },
             { name: 'Spin', type: 'Cardio', day: null, isTarget: false },
-            { name: 'Row', type: 'Cardio', day: null, isTarget: false },
             // Recovery - Optional (no target defined yet)
-            { name: 'Rehab Session', type: 'Recovery', day: null, isTarget: false },
+            { name: 'Compression Therapy', type: 'Recovery', day: null, isTarget: false },
             { name: 'Contrast Therapy', type: 'Recovery', day: null, isTarget: false },
-            { name: 'Compression Therapy', type: 'Recovery', day: null, isTarget: false }
+            { name: 'Rehab Session', type: 'Recovery', day: null, isTarget: false }
         ];
 
         const targetSessions = allSessions.filter(s => s.isTarget && s.type !== 'Cardio' && s.type !== 'Recovery');
