@@ -786,7 +786,7 @@
             <div class="summary-grid" id="summary-grid"></div>
 
             <section>
-                <h2>Target Sessions</h2>
+                <h2>Strength Sessions</h2>
                 <div class="sessions-grid" id="sessions-grid"></div>
             </section>
 
@@ -912,6 +912,7 @@
                     <option value="Core Workout">Core Workout</option>
                     <option value="Run">Run</option>
                     <option value="Spin">Spin</option>
+                    <option value="Row">Row</option>
                 </select>
             </div>
             <div class="modal-buttons">
@@ -942,6 +943,7 @@
             // Cardio - Optional (no target defined yet)
             { name: 'Run', type: 'Cardio', day: null, isTarget: false },
             { name: 'Spin', type: 'Cardio', day: null, isTarget: false },
+            { name: 'Row', type: 'Cardio', day: null, isTarget: false },
             // Recovery - Optional (no target defined yet)
             { name: 'Rehab Session', type: 'Recovery', day: null, isTarget: false },
             { name: 'Contrast Therapy', type: 'Recovery', day: null, isTarget: false },
@@ -955,6 +957,13 @@
         let selectedWeekStart = null;
         let selectedMonth = new Date();
         let currentEditingSession = null;
+
+        // Weekly targets (from current week onwards)
+        const weeklyTargets = {
+            strength: 3,
+            cardio: 2,
+            recovery: 2
+        };
 
         function switchTab(tabName) {
             // Hide all tabs
@@ -1404,6 +1413,7 @@
                 <button onclick="logExtraWorkout('Core Workout', '${date}')">Core Workout</button>
                 <button onclick="logExtraWorkout('Run', '${date}')">Run</button>
                 <button onclick="logExtraWorkout('Spin', '${date}')">Spin</button>
+                <button onclick="logExtraWorkout('Row', '${date}')">Row</button>
             `;
             document.getElementById('workoutTypeModal').classList.add('active');
         }
@@ -1414,7 +1424,8 @@
                 'Lower Body': 'Strength',
                 'Core Workout': 'Strength',
                 'Run': 'Cardio',
-                'Spin': 'Cardio'
+                'Spin': 'Cardio',
+                'Row': 'Cardio'
             };
 
             const history = loadHistory();
@@ -1510,16 +1521,10 @@
                 });
             }
 
-            // Calculate targets based on isTarget flag
-            const strengthTargets = allSessions.filter(s => s.isTarget && s.type === 'Strength');
-            const strengthScheduled = strengthTargets.filter(s => s.day !== null).length;
-            const strengthPending = weekPassed ? strengthMissed : Math.max(0, strengthScheduled - strengthCount);
-
-            const cardioTargets = allSessions.filter(s => s.isTarget && s.type === 'Cardio');
-            const cardioPending = cardioTargets.length > 0 ? Math.max(0, cardioTargets.length - cardioCount) : 0;
-
-            const recoveryTargets = allSessions.filter(s => s.isTarget && s.type === 'Recovery');
-            const recoveryPending = recoveryTargets.length > 0 ? Math.max(0, recoveryTargets.length - recoveryCount) : 0;
+            // Get weekly targets (these apply from this week onwards)
+            const strengthTarget = weeklyTargets.strength;
+            const cardioTarget = weeklyTargets.cardio;
+            const recoveryTarget = weeklyTargets.recovery;
 
             // Calculate training week number (week 1, 2, 3, etc.)
             const trainingStartDate = new Date(2026, 2, 30); // March 30, 2026
@@ -1545,12 +1550,31 @@
                     <div class="number">${recoveryCount}</div>
                 </div>
                 <div class="summary-card">
-                    <label>Target Progress</label>
-                    <div class="number">${strengthCount}/${strengthScheduled}</div>
+                    <label>Training Week</label>
+                    <div class="number" style="font-size: 60px;">${trainingWeekNumber}</div>
                 </div>
                 <div class="summary-card">
-                    <label>Training Week</label>
-                    <div class="number">${trainingWeekNumber}</div>
+                    <label>Progress</label>
+                    <div style="font-size: 12px; font-weight: 500; padding: 8px 0; line-height: 1.8;">
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                            <span style="min-width: 60px; color: var(--text-secondary);">Strength</span>
+                            <div style="display: flex; gap: 3px;">
+                                ${Array(strengthTarget).fill(0).map((_, i) => `<div style="width: 14px; height: 14px; border-radius: 3px; background: ${i < strengthCount ? 'var(--strength)' : 'var(--border)'}; transition: all 0.2s ease;"></div>`).join('')}
+                            </div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                            <span style="min-width: 60px; color: var(--text-secondary);">Cardio</span>
+                            <div style="display: flex; gap: 3px;">
+                                ${Array(cardioTarget).fill(0).map((_, i) => `<div style="width: 14px; height: 14px; border-radius: 3px; background: ${i < cardioCount ? 'var(--cardio)' : 'var(--border)'}; transition: all 0.2s ease;"></div>`).join('')}
+                            </div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="min-width: 60px; color: var(--text-secondary);">Recovery</span>
+                            <div style="display: flex; gap: 3px;">
+                                ${Array(recoveryTarget).fill(0).map((_, i) => `<div style="width: 14px; height: 14px; border-radius: 3px; background: ${i < recoveryCount ? 'var(--recovery)' : 'var(--border)'}; transition: all 0.2s ease;"></div>`).join('')}
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div class="summary-card">
                     <label>This Week</label>
@@ -2008,7 +2032,8 @@ Upper Body,"May 13, 2026","May 11, 2026 12:08 AM","May 17, 2026",Done,Strength,2
                     'Lower Body': 'Strength',
                     'Core Workout': 'Strength',
                     'Run': 'Cardio',
-                    'Spin': 'Cardio'
+                    'Spin': 'Cardio',
+                    'Row': 'Cardio'
                 };
 
                 const history = loadHistory();
