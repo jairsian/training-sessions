@@ -885,7 +885,7 @@
             <div class="modal-buttons">
                 <button class="cancel-btn" onclick="closeSessionModal()">Close</button>
                 <button class="delete-btn" onclick="deleteLogSession()">Delete</button>
-                <button onclick="openEditModal()">Edit Date</button>
+                <button onclick="openEditModal()">Edit</button>
             </div>
         </div>
     </div>
@@ -893,10 +893,14 @@
     <!-- Edit Date Modal -->
     <div id="editDateModal" class="modal">
         <div class="modal-content">
-            <h3>Edit Session Date</h3>
+            <h3>Edit Session</h3>
             <div class="form-group" style="margin-bottom: 24px;">
                 <label for="edit-date-input">Date</label>
                 <input type="date" id="edit-date-input">
+            </div>
+            <div id="edit-duration-group" class="form-group" style="margin-bottom: 24px; display: none;">
+                <label for="edit-duration-input">Duration (minutes)</label>
+                <input type="number" id="edit-duration-input" min="1" max="180">
             </div>
             <div class="modal-buttons">
                 <button class="cancel-btn" onclick="closeEditModal()">Cancel</button>
@@ -911,13 +915,17 @@
             <h3>Add Workout</h3>
             <div class="form-group" style="margin-bottom: 20px;">
                 <label for="add-workout-select">Session</label>
-                <select id="add-workout-select">
+                <select id="add-workout-select" onchange="updateAddWorkoutDurationField()">
                     <option value="">Select a session...</option>
                 </select>
             </div>
             <div class="form-group" style="margin-bottom: 24px;">
                 <label for="add-workout-date-input">Date</label>
                 <input type="date" id="add-workout-date-input">
+            </div>
+            <div id="add-workout-duration-group" class="form-group" style="margin-bottom: 24px; display: none;">
+                <label for="add-workout-duration-input">Duration (minutes)</label>
+                <input type="number" id="add-workout-duration-input" min="1" max="180">
             </div>
             <div class="modal-buttons">
                 <button class="cancel-btn" onclick="closeAddWorkoutModal()">Cancel</button>
@@ -1624,7 +1632,7 @@
                 </div>
                 <div class="summary-card">
                     <label>Cardio</label>
-                    <div class="number">${cardioMinutes}</div>
+                    <div class="number">${cardioMinutes}<span style="font-size: 15px; color: var(--text-secondary); margin-left: 4px;">min</span></div>
                 </div>
                 <div class="summary-card">
                     <label>Recovery</label>
@@ -1803,6 +1811,19 @@
         function openEditModal() {
             if (!currentEditingSession) return;
             document.getElementById('edit-date-input').value = currentEditingSession.date;
+
+            // Show duration field only for cardio sessions
+            const durationGroup = document.getElementById('edit-duration-group');
+            const durationInput = document.getElementById('edit-duration-input');
+
+            if (currentEditingSession.type === 'Cardio') {
+                durationGroup.style.display = 'block';
+                durationInput.value = currentEditingSession.duration || '';
+            } else {
+                durationGroup.style.display = 'none';
+                durationInput.value = '';
+            }
+
             document.getElementById('sessionDetailModal').classList.remove('active');
             document.getElementById('editDateModal').classList.add('active');
         }
@@ -1823,6 +1844,26 @@
             document.getElementById('addWorkoutModal').classList.remove('active');
         }
 
+        function updateAddWorkoutDurationField() {
+            const workoutName = document.getElementById('add-workout-select').value;
+            const durationGroup = document.getElementById('add-workout-duration-group');
+            const durationInput = document.getElementById('add-workout-duration-input');
+
+            if (workoutName) {
+                const session = allSessions.find(s => s.name === workoutName);
+                if (session && session.type === 'Cardio') {
+                    durationGroup.style.display = 'block';
+                    durationInput.value = '';
+                } else {
+                    durationGroup.style.display = 'none';
+                    durationInput.value = '';
+                }
+            } else {
+                durationGroup.style.display = 'none';
+                durationInput.value = '';
+            }
+        }
+
         async function submitAddWorkout() {
             const workoutName = document.getElementById('add-workout-select').value;
             const dateStr = document.getElementById('add-workout-date-input').value;
@@ -1841,16 +1882,13 @@
 
             const session = allSessions.find(s => s.name === workoutName);
 
-            // For cardio sessions, ask for duration
+            // For cardio sessions, check for duration
             if (session.type === 'Cardio') {
-                const duration = prompt(`How many minutes did you ${workoutName.toLowerCase()} for?`, '30');
-                if (duration === null) {
-                    return; // User cancelled
-                }
+                const durationInput = document.getElementById('add-workout-duration-input');
+                const duration = durationInput.value ? parseInt(durationInput.value) : null;
 
-                const durationNum = parseInt(duration);
-                if (!durationNum || durationNum < 1) {
-                    alert('Please enter a valid duration');
+                if (!duration || duration < 1) {
+                    alert('Please enter duration in minutes');
                     return;
                 }
 
@@ -1859,7 +1897,7 @@
                     name: workoutName,
                     type: session.type,
                     date: dateStr,
-                    duration: durationNum
+                    duration: duration
                 });
 
                 await saveHistory(history);
@@ -1874,7 +1912,7 @@
                                 name: workoutName,
                                 date: dateStr,
                                 type: session.type,
-                                duration: durationNum
+                                duration: duration
                             })
                         });
                     } catch (error) {
@@ -1921,6 +1959,17 @@
             const newDate = document.getElementById('edit-date-input').value;
             if (!newDate) return;
 
+            // For cardio sessions, require duration
+            let newDuration = currentEditingSession.duration;
+            if (currentEditingSession.type === 'Cardio') {
+                const durationInput = document.getElementById('edit-duration-input').value;
+                if (!durationInput || parseInt(durationInput) < 1) {
+                    alert('Please enter duration in minutes');
+                    return;
+                }
+                newDuration = parseInt(durationInput);
+            }
+
             const history = loadHistory();
             const index = history.findIndex(h =>
                 h.name === currentEditingSession.name &&
@@ -1934,11 +1983,18 @@
 
                 // Remove old entry and create new one (simpler for sync logic)
                 history.splice(index, 1);
-                history.push({
+                const newEntry = {
                     name: currentEditingSession.name,
                     date: newDate,
                     type: currentEditingSession.type
-                });
+                };
+
+                // Add duration for cardio
+                if (currentEditingSession.type === 'Cardio') {
+                    newEntry.duration = newDuration;
+                }
+
+                history.push(newEntry);
                 await saveHistory(history);
 
                 // Sync to cloud if configured
@@ -1951,7 +2007,8 @@
                                 name: currentEditingSession.name,
                                 oldDate: currentEditingSession.date,
                                 newDate: newDate,
-                                newType: currentEditingSession.type
+                                newType: currentEditingSession.type,
+                                duration: newDuration || null
                             })
                         });
                     } catch (error) {
