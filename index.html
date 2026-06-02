@@ -946,6 +946,10 @@
                     <option value="Row">Row</option>
                 </select>
             </div>
+            <div id="log-session-duration-group" class="form-group" style="margin-bottom: 24px; display: none;">
+                <label for="log-session-duration">Duration (minutes)</label>
+                <input type="number" id="log-session-duration" min="1" max="180" placeholder="30">
+            </div>
             <div class="modal-buttons">
                 <button class="cancel-btn" onclick="closeLogSessionModal()">Cancel</button>
                 <button onclick="confirmLogSession()">Log</button>
@@ -956,7 +960,7 @@
     <script>
         // ===== CLOUD SYNC CONFIGURATION =====
         // Google Apps Script deployment URL
-        let GOOGLE_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwHPnFvyXIDszuLsia6ybWOo8QhtfwS2Kw9QsdGtTt1cxQUYB0qmTf2mp9JCgQPV42V/exec';
+        let GOOGLE_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbylQdijDeNDLSB7576jyYlCUjC1ad7MDKJDGfhjElrZ3VSvSUCoPNIRgr4oS1A1EAwn/exec';
 
         // Data Model: Session Definition
         // Properties:
@@ -992,7 +996,7 @@
         // Weekly targets (from current week onwards)
         const weeklyTargets = {
             strength: 3,
-            cardio: 2,
+            cardioMinutes: 60,  // Total minutes per week, not session count
             recovery: 2
         };
 
@@ -1459,30 +1463,74 @@
                 'Row': 'Cardio'
             };
 
-            const history = loadHistory();
-            history.push({
-                name: type,
-                type: typeMap[type],
-                date: date,
-                isExtraWorkout: true
-            });
+            // For cardio types, ask for duration
+            if (typeMap[type] === 'Cardio') {
+                // Show the duration input
+                const duration = prompt(`How many minutes did you ${type.toLowerCase()} for?`, '30');
+                if (duration === null) {
+                    return; // User cancelled
+                }
 
-            await saveHistory(history);
+                const durationNum = parseInt(duration);
+                if (!durationNum || durationNum < 1) {
+                    alert('Please enter a valid duration');
+                    return;
+                }
 
-            // Sync to cloud if configured
-            if (GOOGLE_APPS_SCRIPT_URL) {
-                try {
-                    await fetch(GOOGLE_APPS_SCRIPT_URL, {
-                        method: 'POST',
-                        body: JSON.stringify({
-                            action: 'logWorkout',
-                            name: type,
-                            date: date,
-                            type: typeMap[type]
-                        })
-                    });
-                } catch (error) {
-                    console.log('Cloud sync error:', error);
+                const history = loadHistory();
+                history.push({
+                    name: type,
+                    type: typeMap[type],
+                    date: date,
+                    isExtraWorkout: true,
+                    duration: durationNum
+                });
+
+                await saveHistory(history);
+
+                // Sync to cloud if configured
+                if (GOOGLE_APPS_SCRIPT_URL) {
+                    try {
+                        await fetch(GOOGLE_APPS_SCRIPT_URL, {
+                            method: 'POST',
+                            body: JSON.stringify({
+                                action: 'logWorkout',
+                                name: type,
+                                date: date,
+                                type: typeMap[type],
+                                duration: durationNum
+                            })
+                        });
+                    } catch (error) {
+                        console.log('Cloud sync error:', error);
+                    }
+                }
+            } else {
+                const history = loadHistory();
+                history.push({
+                    name: type,
+                    type: typeMap[type],
+                    date: date,
+                    isExtraWorkout: true
+                });
+
+                await saveHistory(history);
+
+                // Sync to cloud if configured
+                if (GOOGLE_APPS_SCRIPT_URL) {
+                    try {
+                        await fetch(GOOGLE_APPS_SCRIPT_URL, {
+                            method: 'POST',
+                            body: JSON.stringify({
+                                action: 'logWorkout',
+                                name: type,
+                                date: date,
+                                type: typeMap[type]
+                            })
+                        });
+                    } catch (error) {
+                        console.log('Cloud sync error:', error);
+                    }
                 }
             }
 
@@ -1529,10 +1577,12 @@
                 return h.type === 'Strength' && hDate >= range.start && hDate <= range.end;
             }).length;
 
-            const cardioCount = history.filter(h => {
+            // Cardio: sum total minutes instead of counting sessions
+            const cardioSessionsThisWeek = history.filter(h => {
                 const hDate = new Date(h.date + 'T00:00:00');
                 return h.type === 'Cardio' && hDate >= range.start && hDate <= range.end;
-            }).length;
+            });
+            const cardioMinutes = cardioSessionsThisWeek.reduce((total, h) => total + (h.duration || 0), 0);
 
             const recoveryCount = history.filter(h => {
                 const hDate = new Date(h.date + 'T00:00:00');
@@ -1554,7 +1604,7 @@
 
             // Get weekly targets (these apply from this week onwards)
             const strengthTarget = weeklyTargets.strength;
-            const cardioTarget = weeklyTargets.cardio;
+            const cardioTarget = weeklyTargets.cardioMinutes;
             const recoveryTarget = weeklyTargets.recovery;
 
             // Calculate training week number (week 1, 2, 3, etc.)
@@ -1574,7 +1624,7 @@
                 </div>
                 <div class="summary-card">
                     <label>Cardio</label>
-                    <div class="number">${cardioCount}</div>
+                    <div class="number">${cardioMinutes}</div>
                 </div>
                 <div class="summary-card">
                     <label>Recovery</label>
@@ -1595,9 +1645,10 @@
                         </div>
                         <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
                             <span style="min-width: 60px; color: var(--text-secondary);">Cardio</span>
-                            <div style="display: flex; gap: 3px;">
-                                ${Array(cardioTarget).fill(0).map((_, i) => `<div style="width: 14px; height: 14px; border-radius: 3px; background: ${i < cardioCount ? 'var(--cardio)' : 'var(--border)'}; transition: all 0.2s ease;"></div>`).join('')}
+                            <div style="flex: 1; height: 14px; border-radius: 3px; background: var(--border); overflow: hidden;">
+                                <div style="height: 100%; width: ${Math.min(100, (cardioMinutes / cardioTarget) * 100)}%; background: var(--cardio); transition: all 0.2s ease;"></div>
                             </div>
+                            <span style="font-size: 11px; color: var(--text-secondary); min-width: 30px; text-align: right;">${cardioMinutes}/${cardioTarget}</span>
                         </div>
                         <div style="display: flex; align-items: center; gap: 8px;">
                             <span style="min-width: 60px; color: var(--text-secondary);">Recovery</span>
@@ -1789,29 +1840,72 @@
             }
 
             const session = allSessions.find(s => s.name === workoutName);
-            const history = loadHistory();
-            history.push({
-                name: workoutName,
-                type: session.type,
-                date: dateStr
-            });
 
-            await saveHistory(history);
+            // For cardio sessions, ask for duration
+            if (session.type === 'Cardio') {
+                const duration = prompt(`How many minutes did you ${workoutName.toLowerCase()} for?`, '30');
+                if (duration === null) {
+                    return; // User cancelled
+                }
 
-            // Sync to cloud if configured
-            if (GOOGLE_APPS_SCRIPT_URL) {
-                try {
-                    await fetch(GOOGLE_APPS_SCRIPT_URL, {
-                        method: 'POST',
-                        body: JSON.stringify({
-                            action: 'logWorkout',
-                            name: workoutName,
-                            date: dateStr,
-                            type: session.type
-                        })
-                    });
-                } catch (error) {
-                    console.log('Cloud sync error:', error);
+                const durationNum = parseInt(duration);
+                if (!durationNum || durationNum < 1) {
+                    alert('Please enter a valid duration');
+                    return;
+                }
+
+                const history = loadHistory();
+                history.push({
+                    name: workoutName,
+                    type: session.type,
+                    date: dateStr,
+                    duration: durationNum
+                });
+
+                await saveHistory(history);
+
+                // Sync to cloud if configured
+                if (GOOGLE_APPS_SCRIPT_URL) {
+                    try {
+                        await fetch(GOOGLE_APPS_SCRIPT_URL, {
+                            method: 'POST',
+                            body: JSON.stringify({
+                                action: 'logWorkout',
+                                name: workoutName,
+                                date: dateStr,
+                                type: session.type,
+                                duration: durationNum
+                            })
+                        });
+                    } catch (error) {
+                        console.log('Cloud sync error:', error);
+                    }
+                }
+            } else {
+                const history = loadHistory();
+                history.push({
+                    name: workoutName,
+                    type: session.type,
+                    date: dateStr
+                });
+
+                await saveHistory(history);
+
+                // Sync to cloud if configured
+                if (GOOGLE_APPS_SCRIPT_URL) {
+                    try {
+                        await fetch(GOOGLE_APPS_SCRIPT_URL, {
+                            method: 'POST',
+                            body: JSON.stringify({
+                                action: 'logWorkout',
+                                name: workoutName,
+                                date: dateStr,
+                                type: session.type
+                            })
+                        });
+                    } catch (error) {
+                        console.log('Cloud sync error:', error);
+                    }
                 }
             }
 
@@ -1972,39 +2066,11 @@ Upper Body,"May 13, 2026","May 11, 2026 12:08 AM","May 17, 2026",Done,Strength,2
 
             const session = allSessions.find(s => s.name === name);
 
-            const history = loadHistory();
-            history.push({
-                name: name,
-                type: session.type,
-                date: date
-            });
-
-            await saveHistory(history);
-
-            // Sync to cloud if configured
-            if (GOOGLE_APPS_SCRIPT_URL) {
-                try {
-                    await fetch(GOOGLE_APPS_SCRIPT_URL, {
-                        method: 'POST',
-                        body: JSON.stringify({
-                            action: 'logWorkout',
-                            name: name,
-                            date: date,
-                            type: session.type || ''
-                        })
-                    });
-                } catch (error) {
-                    console.log('Cloud sync error:', error);
-                }
-            }
-
-            renderSessions();
-            renderCalendar();
-            updateSummary();
-            updateSummary();
-
-            document.getElementById('workout-select').value = '';
-            document.getElementById('date-completed').value = '';
+            // For cardio sessions, we need to ask for duration in Quick Log too
+            // For now, redirect to the dashboard modal for better UX
+            openLogSessionModal(session);
+            // Set the date they selected
+            document.getElementById('log-session-date').value = date;
         }
 
         // Dashboard session logging
@@ -2024,12 +2090,25 @@ Upper Body,"May 13, 2026","May 11, 2026 12:08 AM","May 17, 2026",Done,Strength,2
             // Show type selector only for Extra Workout
             const typeGroup = document.getElementById('log-session-type-group');
             const typeSelect = document.getElementById('log-session-type');
+            const durationGroup = document.getElementById('log-session-duration-group');
+            const durationInput = document.getElementById('log-session-duration');
+
             if (session.name === 'Extra Workout') {
                 typeGroup.style.display = 'block';
                 typeSelect.value = '';
+                durationGroup.style.display = 'none';
+                durationInput.value = '';
             } else {
                 typeGroup.style.display = 'none';
                 typeSelect.value = '';
+                // Show duration only for cardio sessions
+                if (session.type === 'Cardio') {
+                    durationGroup.style.display = 'block';
+                    durationInput.value = '';
+                } else {
+                    durationGroup.style.display = 'none';
+                    durationInput.value = '';
+                }
             }
 
             document.getElementById('logSessionModal').classList.add('active');
@@ -2067,14 +2146,25 @@ Upper Body,"May 13, 2026","May 11, 2026 12:08 AM","May 17, 2026",Done,Strength,2
                     'Row': 'Cardio'
                 };
 
-                const history = loadHistory();
-                history.push({
+                // For cardio extra workouts, ask for duration
+                let workoutEntry = {
                     name: selectedType,
                     type: typeMap[selectedType],
                     date: dateStr,
                     isExtraWorkout: true
-                });
+                };
 
+                if (typeMap[selectedType] === 'Cardio') {
+                    const duration = parseInt(document.getElementById('log-session-duration').value);
+                    if (!duration || duration < 1) {
+                        alert('Please enter duration in minutes');
+                        return;
+                    }
+                    workoutEntry.duration = duration;
+                }
+
+                const history = loadHistory();
+                history.push(workoutEntry);
                 await saveHistory(history);
 
                 // Sync to cloud if configured
@@ -2086,7 +2176,8 @@ Upper Body,"May 13, 2026","May 11, 2026 12:08 AM","May 17, 2026",Done,Strength,2
                                 action: 'logWorkout',
                                 name: selectedType,
                                 date: dateStr,
-                                type: typeMap[selectedType]
+                                type: typeMap[selectedType],
+                                duration: workoutEntry.duration || null
                             })
                         });
                     } catch (error) {
@@ -2094,13 +2185,25 @@ Upper Body,"May 13, 2026","May 11, 2026 12:08 AM","May 17, 2026",Done,Strength,2
                     }
                 }
             } else {
-                const history = loadHistory();
-                history.push({
+                // Regular session logging
+                let workoutEntry = {
                     name: pendingDashboardSession.name,
                     type: pendingDashboardSession.type,
                     date: dateStr
-                });
+                };
 
+                // For cardio sessions, ask for duration
+                if (pendingDashboardSession.type === 'Cardio') {
+                    const duration = parseInt(document.getElementById('log-session-duration').value);
+                    if (!duration || duration < 1) {
+                        alert('Please enter duration in minutes');
+                        return;
+                    }
+                    workoutEntry.duration = duration;
+                }
+
+                const history = loadHistory();
+                history.push(workoutEntry);
                 await saveHistory(history);
 
                 // Sync to cloud if configured
@@ -2112,7 +2215,8 @@ Upper Body,"May 13, 2026","May 11, 2026 12:08 AM","May 17, 2026",Done,Strength,2
                                 action: 'logWorkout',
                                 name: pendingDashboardSession.name,
                                 date: dateStr,
-                                type: pendingDashboardSession.type
+                                type: pendingDashboardSession.type,
+                                duration: workoutEntry.duration || null
                             })
                         });
                     } catch (error) {
